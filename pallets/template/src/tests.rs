@@ -1,5 +1,5 @@
 use super::*;
-use crate::{mock::*, Error, Event};
+use crate::{mock::*, Error};
 // assert_noop 没有任何操作
 use frame_support::{assert_noop, assert_ok, BoundedVec};
 
@@ -22,8 +22,9 @@ fn create_claim_works() {
 	});
 }
 
+#[test]
 fn create_claim_claim_already_exist() {
-	new_test_ext().execute_with(execute_with(|| {
+	new_test_ext().execute_with(|| {
 		// 创建声明
 		let claim = BoundedVec::try_from(vec![0, 1]).unwrap();
 
@@ -35,7 +36,7 @@ fn create_claim_claim_already_exist() {
 			TemplateModule::create_claim(RuntimeOrigin::signed(1), claim.clone()),
 			Error::<Test>::AlreadyClaimed
 		);
-	}));
+	});
 }
 
 #[test]

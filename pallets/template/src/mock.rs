@@ -52,7 +52,7 @@ impl pallet_template::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
 
 	// 为了测试，我们将最大长度设置为 10
-	// type MaxClaimLength = ConstU32<10>;
+	type MaxClaimLength = frame_support::traits::ConstU32<10>;
 
 	// type WeightInfo = ();
 }

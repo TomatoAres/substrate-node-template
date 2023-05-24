@@ -24,6 +24,9 @@ pub mod pallet {
 	pub trait Config: frame_system::Config {
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
+
+		#[pallet::constant]
+		type MaxClaimLength: Get<u32>;
 	}
 
 	// Pallets use events to inform users when important changes are made.
@@ -32,12 +35,16 @@ pub mod pallet {
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
 		/// Event emitted when a claim has been created.
-		ClaimCreated { who: T::AccountId, claim: T::Hash },
+		ClaimCreated { who: T::AccountId, claim: BoundedVec<u8, T::MaxClaimLength> },
 		/// Event emitted when a claim is revoked by the owner.
-		ClaimRevoked { who: T::AccountId, claim: T::Hash },
+		ClaimRevoked { who: T::AccountId, claim: BoundedVec<u8, T::MaxClaimLength> },
 
 		/// Event emitted when a claim is transfered by the owner.
-		ClaimTransfered { from: T::AccountId, to: T::AccountId, claim: T::Hash },
+		ClaimTransfered {
+			from: T::AccountId,
+			to: T::AccountId,
+			claim: BoundedVec<u8, T::MaxClaimLength>,
+		},
 	}
 
 	#[pallet::error]
@@ -51,8 +58,12 @@ pub mod pallet {
 	}
 
 	#[pallet::storage]
-	pub(super) type Claims<T: Config> =
-		StorageMap<_, Blake2_128Concat, T::Hash, (T::AccountId, T::BlockNumber)>;
+	pub(super) type Claims<T: Config> = StorageMap<
+		_,
+		Blake2_128Concat,
+		BoundedVec<u8, T::MaxClaimLength>, // key type
+		(T::AccountId, T::BlockNumber),    // value type
+	>;
 
 	// Dispatchable functions allow users to interact with the pallet and invoke state changes.
 	// These functions materialize as "extrinsics", which are often compared to transactions.
@@ -60,7 +71,10 @@ pub mod pallet {
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
 		#[pallet::weight(0)]
-		pub fn create_claim(origin: OriginFor<T>, claim: T::Hash) -> DispatchResult {
+		pub fn create_claim(
+			origin: OriginFor<T>,
+			claim: BoundedVec<u8, T::MaxClaimLength>,
+		) -> DispatchResult {
 			// Check that the extrinsic was signed and get the signer.
 			// This function will return an error if the extrinsic is not signed.
 			let sender = ensure_signed(origin)?;
@@ -81,7 +95,10 @@ pub mod pallet {
 		}
 
 		#[pallet::weight(0)]
-		pub fn revoke_claim(origin: OriginFor<T>, claim: T::Hash) -> DispatchResult {
+		pub fn revoke_claim(
+			origin: OriginFor<T>,
+			claim: BoundedVec<u8, T::MaxClaimLength>,
+		) -> DispatchResult {
 			// Check that the extrinsic was signed and get the signer.
 			// This function will return an error if the extrinsic is not signed.
 			let sender = ensure_signed(origin)?;
@@ -103,7 +120,7 @@ pub mod pallet {
 		#[pallet::weight(0)]
 		pub fn transfer_claim(
 			origin: OriginFor<T>,
-			claim: T::Hash,
+			claim: BoundedVec<u8, T::MaxClaimLength>,
 			to: T::AccountId,
 		) -> DispatchResult {
 			let sender = ensure_signed(origin)?;
