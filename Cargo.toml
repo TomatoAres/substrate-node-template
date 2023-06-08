@@ -2,6 +2,8 @@
 members = [
     "node",
     "pallets/template",
+    # step17，导入 kitties
+    "pallets/kitties",
     "runtime",
 ]
 [profile.release]

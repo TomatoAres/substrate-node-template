@@ -53,6 +53,7 @@ frame-system-benchmarking = { version = "4.0.0-dev", default-features = false, g
 
 # Local Dependencies
 pallet-template = { version = "4.0.0-dev", default-features = false, path = "../pallets/template" }
+# step19, add pallet-kitties
 pallet-kitties = { version = "4.0.0-dev", default-features = false, path = "../pallets/kitties" }
 
 [build-dependencies]

@@ -47,7 +47,7 @@ pub use sp_runtime::{Perbill, Permill};
 
 /// Import the template pallet.
 pub use pallet_template;
-// Import the kitties pallet
+// step20, Import the kitties pallet
 pub use pallet_kitties;
 
 /// An index to a block.
@@ -270,16 +270,20 @@ impl pallet_template::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 }
 
+// step21, 实现.
 // Configure the pallet-kitties in pallets/kitties.
 impl pallet_kitties::Config for Runtime {
-	type Event = RuntimeEvent;
+	type RuntimeEvent = RuntimeEvent;
 	type Randomness = pallet_randomness_collective_flip::Module<Runtime>;
-	type KittyIndex = u32;
-	type Kitty = Kitty;
-	type Currency = Balances;
+
+	// 暂时没有下边这些，看看后续什么时候加
+	// type KittyId = u32;
+	// type Kitty = Kitty;
+	// type Currency = Balances;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
+// 最终组装runtime
 construct_runtime!(
 	pub struct Runtime
 	where
@@ -296,6 +300,7 @@ construct_runtime!(
 		Sudo: pallet_sudo,
 		// Include the custom logic from the pallet-template in the runtime.
 		TemplateModule: pallet_template,
+		// 组装kitties
 		KittiesModule: pallet_kitties,
 	}
 );
