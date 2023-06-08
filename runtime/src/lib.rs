@@ -269,12 +269,15 @@ impl pallet_sudo::Config for Runtime {
 impl pallet_template::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 }
+use pallet_insecure_randomness_collective_flip;
+
+impl pallet_insecure_randomness_collective_flip::Config for Runtime {}
 
 // step21, 实现.
 // Configure the pallet-kitties in pallets/kitties.
 impl pallet_kitties::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
-	type Randomness = pallet_randomness_collective_flip::Module<Runtime>;
+	type Randomness = RandomnessCollectiveFlip;
 
 	// 暂时没有下边这些，看看后续什么时候加
 	// type KittyId = u32;
@@ -302,6 +305,7 @@ construct_runtime!(
 		TemplateModule: pallet_template,
 		// 组装kitties
 		KittiesModule: pallet_kitties,
+		RandomnessCollectiveFlip: pallet_insecure_randomness_collective_flip,
 	}
 );
 
