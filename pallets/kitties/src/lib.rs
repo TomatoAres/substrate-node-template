@@ -1,96 +1,4 @@
 // step02, lib 文件框架
-// #![cfg_attr(not(feature = "std"), no_std)]
-
-// pub use pallet::*;
-
-// #[frame_support::pallet]
-// pub mod pallet {
-//   use frame_support::pallet_prelude::*;
-//     use frame_system::pallet_prelude::*;
-//     use frame_support::{
-//         sp_runtime::traits::Hash,
-//         traits::{ Randomness, Currency, tokens::ExistenceRequirement },
-//         transactional
-//     };
-//     use sp_io::hashing::blake2_128;
-
-//     #[cfg(feature = "std")]
-//     use serde::{Deserialize, Serialize};
-
-//     // ACTION #1: Write a Struct to hold Kitty information.
-
-//     // ACTION #2: Enum declaration for Gender.
-
-//     // ACTION #3: Implementation to handle Gender type in Kitty struct.
-
-//     #[pallet::pallet]
-//     #[pallet::generate_store(trait Store)]
-//     pub struct Pallet<T>(_);
-
-//     /// Configure the pallet by specifying the parameters and types it depends on.
-//     #[pallet::config]
-//     pub trait Config: pallet_balances::Config + frame_system::Config {
-//         /// Because this pallet emits events, it depends on the runtime's definition of an event.
-//         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
-
-//         /// The Currency handler for the Kitties pallet.
-//         type Currency: Currency<Self::AccountId>;
-
-//         // ACTION #5: Specify the type for Randomness we want to specify for runtime.
-//     }
-
-//     // Errors.
-//     #[pallet::error]
-//     pub enum Error<T> {
-//         // TODO Part III
-//     }
-
-//     // Events.
-//     #[pallet::event]
-//     #[pallet::metadata(T::AccountId = "AccountId")]
-//     #[pallet::generate_deposit(pub(super) fn deposit_event)]
-//     pub enum Event<T: Config> {
-//         // TODO Part III
-//     }
-
-//     #[pallet::storage]
-//     #[pallet::getter(fn all_kitties_count)]
-//     pub(super) type AllKittiesCount<T: Config> = StorageValue<_, u64, ValueQuery>;
-
-//     // ACTION #6: Add Nonce storage item.
-
-//     // ACTION #9: Remaining storage items.
-
-//     // TODO Part IV: Our pallet's genesis configuration.
-
-//     #[pallet::call]
-//     impl<T: Config> Pallet<T> {
-
-//         // TODO Part III: create_kitty
-
-//         // TODO Part III: set_price
-
-//         // TODO Part III: transfer
-
-//         // TODO Part III: buy_kitty
-
-//         // TODO Part III: breed_kitty
-//     }
-
-//     // ACTION #4: helper function for Kitty struct
-
-//     impl<T: Config> Pallet<T> {
-//         // TODO Part III: helper functions for dispatchable functions
-
-//         // ACTION #7: increment_nonce helper
-
-//         // ACTION #8: random_hash helper
-
-//         // TODO: mint, transfer_from
-
-//     }
-// }
-
 // 这个看官方文章有说明
 #![cfg_attr(not(feature = "std"), no_std)]
 
@@ -128,12 +36,9 @@ pub mod pallet {
 	)]
 	pub struct Kitty(pub [u8; 16]);
 
-	// s2p03,BalanceOf ?
+	// s2p03,BalanceOf ?? TODO
 	type BalanceOf<T> =
 		<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
-
-	#[pallet::pallet]
-	pub struct Pallet<T>(_);
 
 	/// 配置
 	#[pallet::config]
@@ -145,7 +50,7 @@ pub mod pallet {
 		// step15, 随机数配置
 		type Randomness: Randomness<Self::Hash, Self::BlockNumber>;
 
-		// s2p02, 定义 kitty 索引
+		// s2p02, 定义 kitty 索引，实现了下边这些 trait
 		type KittyIndex: Parameter
 			+ Member
 			+ AtLeast32BitUnsigned
@@ -166,20 +71,19 @@ pub mod pallet {
 	// 	0_u32
 	// }
 
-	// The pallet's runtime storage items.
-	// https://docs.substrate.io/main-docs/build/runtime-storage/
+	// TODO  remove ？？
+	#[pallet::pallet]
+	// #[pallet::generate_store(pub(super) trait Store)]
+	pub struct Pallet<T>(_);
+
+	// The pallet's runtime storage items. 一共五个
 	#[pallet::storage]
 	#[pallet::getter(fn next_kitty_id)]
-	// step06, kitty id 自增 存储
-	// StorageMap
-	// 用于存储键值对，第一个参数是存储的模块名，第二个参数是存储的键的类型，
-	// 第三个参数是存储的值的类型，第四个参数是存储的查询类型
+	// step06, kitty id 自增 存储 StorageMap
 	pub type NextKittyId<T: Config> = StorageValue<_, T::KittyIndex, ValueQuery>;
 
 	// step07, kitty 存储
 	// StorageMap 用于存储键值对，第一个参数是存储的模块名，第二个参数是存储的键的类型，
-	// 第三个参数是存储的值的类型，第四个参数是存储的查询类型
-	// 第五个参数是存储的修改类型，第六个参数是存储的是否可被外部访问
 	#[pallet::storage]
 	#[pallet::getter(fn kitties)]
 	pub type Kitties<T: Config> = StorageMap<_, Blake2_128Concat, T::KittyIndex, Kitty>;
@@ -192,8 +96,14 @@ pub mod pallet {
 	// kitty 父母
 	#[pallet::storage]
 	#[pallet::getter(fn all_owner_kitty)]
-	pub type AllOwnerKitty<T: Config> =
+	pub type AllKtsOwned<T: Config> =
 		StorageMap<_, Blake2_128Concat, T::AccountId, BoundedVec<Kitty, T::MaxLength>, OptionQuery>;
+
+	// 存储正在销售的kittyid 及价格
+	#[pallet::storage]
+	#[pallet::getter(fn kitties_list_for_sales)]
+	pub type KittiesShop<T: Config> =
+		StorageMap<_, Blake2_128Concat, T::KittyIndex, Option<BalanceOf<T>>, ValueQuery>;
 
 	// setp12, event 定义
 	#[pallet::event]
@@ -216,6 +126,7 @@ pub mod pallet {
 			recipient: T::AccountId,
 			kitty_id: T::KittyIndex,
 		},
+		KittyInSell(T::AccountId, T::KittyIndex, Option<BalanceOf<T>>),
 	}
 
 	// step13, error 定义
@@ -230,7 +141,9 @@ pub mod pallet {
 		SameKittyId,
 		KittiesCountOverflow,
 		TokenNotEnough,
-		ExeddMaxKittyLength,
+		ExceedMaxKittyOwned,
+		NoBuySelf,
+		NotForSale,
 	}
 
 	// Dispatchable functions allows users to interact with the pallet and invoke state changes.
@@ -243,9 +156,6 @@ pub mod pallet {
 		#[pallet::call_index(0)]
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1).ref_time())]
 		pub fn create(origin: OriginFor<T>) -> DispatchResult {
-			// Check that the extrinsic was signed and get the signer.
-			// This function will return an error if the extrinsic is not signed.
-			// https://docs.substrate.io/main-docs/build/origins/
 			let who = ensure_signed(origin)?;
 
 			// - 1. .map_err(|_| ...) 是一个函数,它接收 Err(E) 并将其映射为另一个错误返回
@@ -268,8 +178,7 @@ pub mod pallet {
 			Kitties::<T>::insert(kitty_id, &kitty);
 			KittyOwner::<T>::insert(kitty_id, &who);
 			NextKittyId::<T>::put(kitty_id + One::one());
-			// AllOwnerKitty::<T>::try_mutate(&who, |kitty_vec| kitty_vec.try_push(kitty.clone()))?;
-			AllOwnerKitty::<T>::try_mutate
+			// AllKtsOwned::<T>::
 
 			// Emit an event.
 			Self::deposit_event(Event::KittyCreated { who, kitty_id, kitty });
@@ -294,10 +203,8 @@ pub mod pallet {
 
 			ensure!(kitty_id_1 != kitty_id_2, Error::<T>::SameKittyId);
 
-			// ensure!(Kitties::<T>::contains_key(kitty_id_1), Error::<T>::InvalidKittyId);
-			// ensure!(Kitties::<T>::contains_key(kitty_id_2), Error::<T>::InvalidKittyId);
-			let kitty_1 = Self::kitties(kitty_id_1).ok_or(Error::<T>::InvalidKittyId)?;
-			let kitty_2 = Self::kitties(kitty_id_2).ok_or(Error::<T>::InvalidKittyId)?;
+			let kitty_1 = Self::get_kitty(kitty_id_1).map_err(|_| Error::<T>::InvalidKittyId)?;
+			let kitty_2 = Self::get_kitty(kitty_id_2).map_err(|_| Error::<T>::InvalidKittyId)?;
 
 			let kitty_id = Self::get_next_id()?;
 
@@ -312,9 +219,11 @@ pub mod pallet {
 			Kitties::<T>::insert(kitty_id, &new_kitty);
 			KittyOwner::<T>::insert(kitty_id, &who);
 			NextKittyId::<T>::put(kitty_id + One::one());
-			// AllOwnerKitty::<T>::try_mutate(&who, |kitty_vec| {
+			// todo 有报错，跳过先
+			// AllKtsOwned::<T>::try_mutate(&who, |kitty_vec| {
 			// 	kitty_vec.try_push(new_kitty.clone())
 			// })?;
+
 			// Emit an event.
 			Self::deposit_event(Event::KittyBreed { who, kitty_id, kitty: new_kitty });
 
@@ -329,27 +238,33 @@ pub mod pallet {
 			kitty_id: T::KittyIndex,
 			new_owner: T::AccountId,
 		) -> DispatchResult {
-			let who = ensure_signed(origin)?;
 			let prev_owner = ensure_signed(origin)?;
 
-			let exsit_kitty = Self::get_kitty(kitty_id).map_err(|_| Error::<T>::InvalidKittyId)?;
+			// let exsit_kitty = Self::get_kitty(kitty_id).map_err(|_| Error::<T>::InvalidKittyId)?;
 
 			ensure!(Self::kitty_owner(kitty_id) == Some(prev_owner.clone()), Error::<T>::NotOwner);
 
-			T::Currency::reserve(&new_owner, T::KittyReserve::get())
-				.map_err(|_| Error::<T>::TokenNotEnough)?;
+			// AllKtsOwned::<T>::try_mutate(&prev_owner, |owned| {
+			// 	if let Some(index) = owned.iter().position(|kitty| kitty == &exsit_kitty) {
+			// 		owned.swap_remove(index);
+			// 		return Ok(())
+			// 	}
+			// 	Err(())
+			// })
+			// .map_err(|_| <Error<T>>::NotOwner)?;
 
-			KittyOwner::<T>::insert(kitty_id, &new_owner);
-			AllOwnerKitty::<T>::try_mutate(&prev_owner, |owned| {
-				if let Some(index) = owned.iter().position(|kitty| kitty == &exsit_kitty) {
-					owned.swap_remove(index);
-					return Ok(())
-				}
-				Err(())
-			})
-			.map_err(|_| <Error<T>>::NotOwner)?;
+			T::Currency::unreserve(&prev_owner, T::KittyReserve::get());
 
-			Self::deposit_event(Event::KittyTransfer { who, recipient: new_owner, kitty_id });
+			<KittyOwner<T>>::insert(kitty_id, &new_owner);
+
+			// AllKtsOwned::<T>::try_mutate(&new_owner, |vec| vec.try_push(exsit_kitty))
+			// 	.map_err(|_| <Error<T>>::ExceedMaxKittyOwned)?;
+
+			Self::deposit_event(Event::KittyTransfer {
+				who: prev_owner,
+				recipient: new_owner,
+				kitty_id,
+			});
 			Ok(())
 		}
 	}

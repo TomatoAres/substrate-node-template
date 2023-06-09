@@ -1,7 +1,12 @@
 use crate as pallet_kitties;
-use frame_support::{
-	parameter_types,
-	traits::{ConstU16, ConstU64},
+pub use frame_support::{
+	construct_runtime, parameter_types,
+	traits::{ConstU128, ConstU16, ConstU32, ConstU64, ConstU8, KeyOwnerProofSystem, StorageInfo},
+	weights::{
+		constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight},
+		IdentityFee, Weight,
+	},
+	StorageValue,
 };
 use frame_system as system;
 use sp_core::H256;
@@ -9,6 +14,9 @@ use sp_runtime::{
 	testing::Header,
 	traits::{BlakeTwo256, IdentityLookup},
 };
+pub type Balance = u128;
+
+use pallet_insecure_randomness_collective_flip;
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
@@ -20,12 +28,10 @@ frame_support::construct_runtime!(
 		NodeBlock = Block,
 		UncheckedExtrinsic = UncheckedExtrinsic,
 	{
-		System: frame_system,
-		// 更新此处
+		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
 		KittiesModule: pallet_kitties::{Pallet, Call, Storage, Event<T>},
-
-		RandomnessCollectiveFlip: pallet_insecure_randomness_collective_flip,
-		// Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
+		Randomness: pallet_insecure_randomness_collective_flip::{Pallet, Storage},
+		Balances: pallet_balances,
 	}
 );
 
@@ -34,8 +40,8 @@ impl system::Config for Test {
 	type BlockWeights = ();
 	type BlockLength = ();
 	type DbWeight = ();
-	type RuntimeOrigin = RuntimeOrigin;
-	type RuntimeCall = RuntimeCall;
+	type Origin = Origin;
+	type Call = Call;
 	type Index = u64;
 	type BlockNumber = u64;
 	type Hash = H256;
@@ -43,12 +49,11 @@ impl system::Config for Test {
 	type AccountId = u64;
 	type Lookup = IdentityLookup<Self::AccountId>;
 	type Header = Header;
-	type RuntimeEvent = RuntimeEvent;
+	type Event = Event;
 	type BlockHashCount = ConstU64<250>;
 	type Version = ();
 	type PalletInfo = PalletInfo;
-	type AccountData = ();
-	// type AccountData = pallet_balances::AccountData<Balance>;
+	type AccountData = pallet_balances::AccountData<Balance>;
 	type OnNewAccount = ();
 	type OnKilledAccount = ();
 	type SystemWeightInfo = ();
@@ -57,46 +62,75 @@ impl system::Config for Test {
 	type MaxConsumers = frame_support::traits::ConstU32<16>;
 }
 
-parameter_types! {
-	pub const KittyReserve: u64 = 1000;
+impl pallet_kitties::Config for Test {
+	type Event = Event;
+	type Randomness = Randomness;
+	type KittyIndex = u32;
+	type KtReserve = KtReserve;
+	type Currency = Balances;
+	type MaxLength = ConstU32<64>;
 }
-
-// type Balance = u64;
 
 impl pallet_insecure_randomness_collective_flip::Config for Test {}
 
-// 暂时用不上 pallet_balances
-// impl pallet_balances::Config for Test {
-// 	type MaxLocks = ();
-// 	type MaxReserves = ();
-// 	type ReserveIdentifier = [u8; 8];
-// 	type Balance = Balance;
-// 	type RuntimeEvent = RuntimeEvent;
-// 	type DustRemoval = ();
-// 	type ExistentialDeposit = ConstU64<1>;
-// 	type AccountStore = System;
-// 	type WeightInfo = ();
-// }
+parameter_types! {
+	// pub const BlockHashCount: BlockNumber = 2400;
+	// pub const Version: RuntimeVersion = VERSION;
+	// /// We allow for 2 seconds of compute with a 6 second average block time.
+	// pub BlockWeights: frame_system::limits::BlockWeights = frame_system::limits::BlockWeights
+	// 	::with_sensible_defaults(2 * WEIGHT_PER_SECOND, NORMAL_DISPATCH_RATIO);
+	// pub BlockLength: frame_system::limits::BlockLength = frame_system::limits::BlockLength
+	// 	::max_with_normal_ratio(5 * 1024 * 1024, NORMAL_DISPATCH_RATIO);
+	// pub const SS58Prefix: u8 = 42;
+	pub const KtReserve: u64 =1_000;
+}
+impl pallet_balances::Config for Test {
+	type MaxLocks = ConstU32<50>;
+	type MaxReserves = ();
+	type ReserveIdentifier = [u8; 8];
+	/// The type for recording an account's balance.
+	type Balance = Balance;
+	/// The ubiquitous event type.
+	type Event = Event;
 
-impl pallet_kitties::Config for Test {
-	type RuntimeEvent = RuntimeEvent;
+	fn deposit_event() = default;
 
-	type Randomness = RandomnessCollectiveFlip;
+	fn on_initialize() {
+		// The `on_initialize` callback is called at the beginning of the block before any extrinsics are dispatched.
+		// It is only called if the block has extrinsics.
+		//
+		// It is incentivized to make this function as cheap as possible.
+		// NOTE: This is called *before* `on_finalize`.
+	}
+
+	fn on_finalize() {
+		// The `on_finalize` callback is called at the end of the block after all extrinsics have been dispatched.
+		// It is only called if the block has extrinsics.
+		//
+		// It is incentivized to make this function as cheap as possible.
+		// NOTE: This is called *after* `on_initialize`.
+	}
+	type DustRemoval = ();
+	type ExistentialDeposit = ConstU128<500>;
+	type AccountStore = System;
+	type WeightInfo = pallet_balances::weights::SubstrateWeight<Test>;
 }
 
-//
 // Build genesis storage according to the mock runtime.
+// pub fn new_test_ext() -> sp_io::TestExternalities {
+// 	system::GenesisConfig::default().build_storage::<Test>().unwrap().into()
+// }
 pub fn new_test_ext() -> sp_io::TestExternalities {
-	// let mut storage =
-	// frame_system::GenesisConfig::default().build_storage::<Test>().unwrap().into();
+	let mut storage = system::GenesisConfig::default().build_storage::<Test>().unwrap();
 
-	// 账户和余额 用不上 先 屏蔽掉
-	// pallet_balances::GenesisConfig::<Test> { balances: vec![(1, 10001), (2, 10002), (3, 999)] }
-	// 	.assimilate_storage(&mut storage)
-	// 	.unwrap();
+	// 初始化余额 	
+	pallet_balances::GenesisConfig::<Test> {
+		balances: vec![(1, 3_500), (2, 10_000_000_000), (3, 9_0000)],
+	}
+	.assimilate_storage(&mut storage)
+	.unwrap();
 
-	// let mut ext: sp_io::TestExternalities = storage.into();
-	// ext.execute_with(|| System::set_block_number(1));
-	// ext
-	system::GenesisConfig::default().build_storage::<Test>().unwrap().into()
+	let mut ext = sp_io::TestExternalities::new(storage);
+	ext.execute_with(|| System::set_block_number(1));
+	ext
 }
